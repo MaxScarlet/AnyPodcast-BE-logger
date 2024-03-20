@@ -19,6 +19,7 @@ export class CrudApiController<T> extends GenericApiController {
 					if (id) {
 						resp = await this.service.get(id);
 					} else {
+						console.log("queryStringParameters->", queryString);
 						resp = await this.service.get_all(queryString);
 						if (resp == null) {
 							return this.errorResponse(StatusCodes.BAD_REQUEST);
@@ -66,7 +67,7 @@ export class CrudApiController<T> extends GenericApiController {
 
 export interface CrudApiService<T> {
 	get(id: string): Promise<T | null>;
-	get_all(queryString: any): Promise<T[] | null>;
+	get_all(filter: any): Promise<T[] | null>;
 	create(item: T): Promise<T>;
 	update(id: string, item: T): Promise<T | null>;
 	delete(id: string): Promise<void>;

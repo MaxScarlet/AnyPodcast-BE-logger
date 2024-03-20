@@ -2,18 +2,21 @@ import { CrudApiService } from "../controllers/crudApiController";
 import { IDbHelper } from "../helpers/IDbHelper";
 
 import { LogRec, LogRecDoc } from "../models/LogRec";
-import { SearchParams } from "../models/SearchParams";
 
 export class LoggerService implements CrudApiService<LogRec> {
 	constructor(private dbHelper: IDbHelper<LogRecDoc> | IDbHelper<LogRec>) {}
 
-	async get_all(queryString: SearchParams): Promise<LogRec[] | null> {
-		if (queryString && !queryString.UserID) {
-			return null;
-		}
+	async get_all(filter: any): Promise<LogRec[] | null> {
 		const fields = ["Msg", "Data"];
-
-		const items = await this.dbHelper.get_list<LogRec>(queryString, fields);
+		const sort = { Created: -1 };
+		let items = await this.dbHelper.get_list<LogRec>(filter, fields, sort);
+		const itemsStart = items.findIndex((item) => item.Msg.startsWith("=== "));
+		items = items.slice(0, itemsStart + 1);
+		// const responseTemp = items.map((itm) => {
+		// 	const { __v, _id, ...resp } = itm;
+		// 	return resp;
+		// });
+		// return responseTemp;
 		return items;
 	}
 

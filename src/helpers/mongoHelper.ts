@@ -1,4 +1,11 @@
-import mongoose, { Connection, Schema, Document, Model, SchemaDefinition } from "mongoose";
+import mongoose, {
+	Connection,
+	Schema,
+	Document,
+	Model,
+	SchemaDefinition,
+	FilterQuery,
+} from "mongoose";
 import { IDbHelper } from "./IDbHelper";
 
 export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
@@ -13,10 +20,17 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 		this.model = mongoose.model<T>(this.modelName, this.schema, this.collection);
 	}
 
-	async get_list<T>(qsObject?: any, fields?: string[]): Promise<T[]> {
-		console.log("qsObject stringify", JSON.stringify(qsObject));
-		const searchParams: Record<string, any> | undefined = this.convertToArgs(qsObject, fields!);
-		return await this.model.find(searchParams!);
+	async get_list<T>(filter?: any, fields?: string[], sort?: any): Promise<T[]> {
+		console.log("qsObject stringify", JSON.stringify(filter));
+		const filterParams = this.createFilterParams(filter);
+		// const response = await this.model.find(filterParams).sort(sort);
+		// const responseTemp = response.map((itm) => {
+		// 	const { __v, _id, ...resp } = itm;
+		// 	return resp;
+		// });
+		// return responseTemp as T[];
+		return (await this.model.find(filterParams).sort(sort)) as T[];
+		// return (await this.model.find(filterParams).sort(sort).lean().exec()) as T[];
 	}
 
 	async get<T>(id: string): Promise<T | null> {
@@ -40,6 +54,28 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 	async delete<T>(id: string): Promise<void> {
 		console.log("monogoHelper.delete", id);
 		await this.model.findByIdAndRemove(id);
+	}
+
+	createFilterParams(filters: any): FilterQuery<any> {
+		const filterParams: FilterQuery<any> = {};
+
+		if (filters.startDate) {
+			filterParams.Created = { $gte: new Date(filters.startDate) };
+		}
+		if (filters.endDate) {
+			filterParams.Created = { ...filterParams.Created, $lte: new Date(filters.endDate) };
+		}
+		// if (filters.logType) {
+		// 	filterParams.logType = filters.logType;
+		// }
+		if (filters.searchText) {
+			filterParams.$or = [
+				{ Msg: { $regex: new RegExp(filters.searchText, "i") } },
+				{ Data: { $regex: new RegExp(filters.searchText, "i") } },
+			];
+		}
+
+		return filterParams;
 	}
 
 	static generateSchemaFromInterface = (interfaceObj: any): Schema => {
@@ -85,7 +121,7 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 }
 
 class MongoConfig {
-	constructor(private clusterName: string) { }
+	constructor(private clusterName: string) {}
 	public user = process.env.DB_USER;
 	public pass = process.env.DB_PASS;
 	public dbName = process.env.DB_NAME;
