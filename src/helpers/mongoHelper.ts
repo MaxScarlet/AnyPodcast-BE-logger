@@ -1,11 +1,4 @@
-import mongoose, {
-	Connection,
-	Schema,
-	Document,
-	Model,
-	SchemaDefinition,
-	FilterQuery,
-} from "mongoose";
+import mongoose, { Schema, Document, Model, SchemaDefinition, FilterQuery } from "mongoose";
 import { IDbHelper } from "./IDbHelper";
 
 export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
@@ -29,12 +22,13 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 		// 	return resp;
 		// });
 		// return responseTemp as T[];
-		return (await this.model.find(filterParams).sort(sort)) as T[];
+		const lst = (await this.model.find(filterParams).lean().sort(sort));
+		return lst as T[];
 		// return (await this.model.find(filterParams).sort(sort).lean().exec()) as T[];
 	}
 
 	async get<T>(id: string): Promise<T | null> {
-		return await this.model.findById(id);
+		return (await this.model.findById(id)) as T;
 	}
 
 	async create<T>(data: T): Promise<T> {
@@ -48,12 +42,54 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 			throw new Error(`Document with ID ${id} not found.`);
 		}
 		const updatedDocument = Object.assign(found, updated);
-		return updatedDocument.save();
+		return <T>updatedDocument.save();
 	}
 
 	async delete<T>(id: string): Promise<void> {
-		console.log("monogoHelper.delete", id);
-		await this.model.findByIdAndRemove(id);
+		console.log("mongoHelper.delete", id);
+		await this.model.findByIdAndDelete(id);
+	}
+
+	async search<T>(args: any): Promise<T[]> {
+		let lst;
+		let arrgParams = MongoDbHelper.convertToAggregation(args);
+
+		console.log("Aggr params", arrgParams);
+		lst = await this.model.aggregate(arrgParams);
+
+		return <T[]>lst;
+	}
+
+	private static convertToAggregation(searchParams?: any) {
+		let aggregationPipeline: any[] = [];
+		if (searchParams) {
+			const matchStage = {};
+			const groupStage = {};
+
+			for (const key of Object.keys(searchParams)) {
+				if (searchParams[key]) {
+					matchStage[key] = searchParams[key];
+				}
+				groupStage[key] = `$$ROOT.${key}`;
+			}
+			if (Object.keys(matchStage).length > 0) {
+				aggregationPipeline.push({ $match: matchStage });
+			}
+			console.log("groupStage", groupStage);
+			aggregationPipeline.push({
+				$group: {
+					_id: groupStage,
+					maxCreated: { $max: { $dateFromString: { dateString: "$Created" } } },
+				},
+			});
+			aggregationPipeline.push({ $sort: { maxCreated: -1 } } as any);
+			const projectStage = { _id: 0 };
+			for (const key of Object.keys(groupStage)) {
+				projectStage[key] = `$_id.${key}`;
+			}
+			aggregationPipeline.push({ $project: projectStage });
+		}
+		return aggregationPipeline;
 	}
 
 	createFilterParams(filters: any): FilterQuery<any> {
@@ -77,8 +113,7 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 
 		return filterParams;
 	}
-
-	static generateSchemaFromInterface = (interfaceObj: any): Schema => {
+	public static generateSchemaFromInterface = (interfaceObj: any): Schema => {
 		const schemaFields: SchemaDefinition = {};
 		for (const key in interfaceObj) {
 			const fieldType = typeof interfaceObj[key];
@@ -105,18 +140,22 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 	};
 
 	private convertToArgs(args: any, fields: string[]) {
-		const { SearchValue, Fields, ...searchCriteria } = args;
-		const criteria: Record<string, any> = {
-			...searchCriteria,
-		};
-		if (SearchValue) {
-			const searchValueRegex = new RegExp(SearchValue, "i");
+		if (args) {
+			const { SearchValue, Fields, ...searchCriteria } = args;
+			const criteria: Record<string, any> = {
+				...searchCriteria,
+			};
+			if (SearchValue) {
+				const searchValueRegex = new RegExp(SearchValue, "i");
 
-			criteria.$or = fields.map((key) => ({
-				[key]: { $regex: searchValueRegex },
-			}));
+				criteria.$or = fields.map((key) => ({
+					[key]: { $regex: searchValueRegex },
+				}));
+			}
+			return criteria;
+		} else {
+			return undefined;
 		}
-		return criteria;
 	}
 }
 

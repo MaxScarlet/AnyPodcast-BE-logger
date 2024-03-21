@@ -1,8 +1,8 @@
-import { APIGatewayProxyEvent } from "aws-lambda";
 import { CrudApiController } from "./controllers/crudApiController";
 import MongoDbHelper from "./helpers/mongoHelper";
 import { LogRecDoc, LogRecSchema } from "./models/LogRec";
 import { LoggerService as Service } from "./services/loggerService";
+import { APIGatewayProxyEvent } from "./controllers/genericApiController";
 
 const tableName = process.env.DB_TABLE!;
 
