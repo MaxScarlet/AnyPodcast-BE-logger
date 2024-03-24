@@ -22,7 +22,7 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 		// 	return resp;
 		// });
 		// return responseTemp as T[];
-		const lst = (await this.model.find(filterParams).lean().sort(sort));
+		const lst = await this.model.find(filterParams).lean().sort(sort);
 		return lst as T[];
 		// return (await this.model.find(filterParams).sort(sort).lean().exec()) as T[];
 	}
@@ -32,6 +32,7 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 	}
 
 	async create<T>(data: T): Promise<T> {
+		console.log("dbHelper", data);
 		const itemCreated = await this.model.create(data);
 		return <T>itemCreated;
 	}
@@ -115,8 +116,10 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 	}
 	public static generateSchemaFromInterface = (interfaceObj: any): Schema => {
 		const schemaFields: SchemaDefinition = {};
+
 		for (const key in interfaceObj) {
 			const fieldType = typeof interfaceObj[key];
+			console.log(`${key}: ${fieldType}`);
 
 			switch (fieldType) {
 				case "number":
@@ -131,10 +134,12 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 				case "object":
 					schemaFields[key] = { type: Object };
 					break;
+
 				default:
 					schemaFields[key] = { type: fieldType };
 			}
 		}
+		console.log("schemaField", schemaFields);
 
 		return new Schema(schemaFields);
 	};

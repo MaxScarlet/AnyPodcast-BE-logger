@@ -1,11 +1,13 @@
 import { Document } from "mongoose";
 import MongoDbHelper from "../helpers/mongoHelper";
+import { LogLevel } from "./LogLevel";
 
 export interface ILogRec {
 	Created?: string;
 	UserID: string;
 	Msg: string;
 	Data: string;
+	LogType: LogLevel;
 }
 
 export class LogRec implements ILogRec {
@@ -13,7 +15,7 @@ export class LogRec implements ILogRec {
 	UserID: string = "";
 	Msg: string = "";
 	Data: string = "";
-
+	LogType: number = 0;
 	constructor(data?: LogRec | string) {
 		if (data) {
 			if (typeof data !== "object") data = JSON.parse(data);

@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { APIGatewayProxyEvent, GenericApiController } from "./genericApiController";
+import { LogRec } from "../models/LogRec";
 
 export class CrudApiController<T> extends GenericApiController {
 	constructor(private service: CrudApiService<T>) {
@@ -30,8 +31,10 @@ export class CrudApiController<T> extends GenericApiController {
 					return this.successResponse(resp);
 
 				case "POST":
-					const itemPost = JSON.parse(body!);
-					const item = await this.service.create(itemPost);
+					const itemPost = new LogRec(body);
+					console.log("itemPost", itemPost);
+
+					const item = await this.service.create(itemPost as T);
 					return this.successResponse(item, StatusCodes.CREATED);
 
 				case "PUT":

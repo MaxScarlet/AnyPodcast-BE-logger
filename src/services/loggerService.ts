@@ -27,6 +27,8 @@ export class LoggerService implements CrudApiService<LogRec> {
 
 	async create(item: LogRec): Promise<LogRec> {
 		item.Created = new Date().toISOString();
+		console.log("service", item);
+
 		const response = await this.dbHelper.create<LogRec>(item);
 		return response;
 	}
