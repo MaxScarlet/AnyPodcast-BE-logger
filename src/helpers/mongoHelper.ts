@@ -139,7 +139,6 @@ export default class MongoDbHelper<T extends Document> implements IDbHelper<T> {
 					schemaFields[key] = { type: fieldType };
 			}
 		}
-		console.log("schemaField", schemaFields);
 
 		return new Schema(schemaFields);
 	};
