@@ -1,5 +1,7 @@
 {
 	"name": "srv-logs",
+	"author": "Maxim Kulik",
+	"auth_type": "Auth0",
 	"description": "Logs Service for AnyPodcast",
 	"project": "AnyPodcast",
 	"version": "1.0.0",
